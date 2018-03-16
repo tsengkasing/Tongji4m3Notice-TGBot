@@ -1,0 +1,8 @@
+# npm module
+node_modules
+
+# sensitive data
+config.json
+
+# temp data
+visitedNoticeIds.json

@@ -1,0 +1,14 @@
+{
+  "AUTHOR": "Tongji 4m3 Notice",
+  "JSESSIONID": "",
+  "SERVERNAME": "",
+  "PERIOD": 300000,
+  "GROUPID": 0,
+  "TELEGRAM": {
+    "TOKEN": ""
+  },
+  "TELEGRAPH": {
+    "ACCESS_TOKEN":""
+  },
+  "PROXY": ""
+}
