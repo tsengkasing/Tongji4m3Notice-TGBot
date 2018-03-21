@@ -11,12 +11,17 @@ const {
   SERVERNAME,
   PERIOD,
   PROXY,
+  RAVENDSN,
   TELEGRAPH: { ACCESS_TOKEN },
   TELEGRAM: { TOKEN }
 } = require('./config.json');
 const fetcher = new NoticeFetcher({JSESSIONID, SERVERNAME});
 const visitedNoticeIdsFile = path.join(__dirname, 'visitedNoticeIds.json');
 const telegraphAPI = new TelegraphAPI(ACCESS_TOKEN);
+
+// 监控使用
+const Raven = require('raven');
+Raven.config(RAVENDSN).install();
 
 /**
  * 主函数
@@ -66,6 +71,7 @@ async function sendNotice(bot, notices) {
         }]]}
       });
     } catch (e) {
+      Raven.captureException(e);
       console.error(`${new Date().toLocaleString()}] ${e.message}`);
     }
   }
@@ -106,6 +112,7 @@ async function scan(bot) {
   try {
     list = await fetcher.getNotificationList();
   } catch (e) {
+    Raven.captureException(e);
     console.error(`[${new Date().toLocaleString()}] ${e.message}`);
   }
   let newNotices = list.filter(({id}) => !visitedNoticeIds.includes(id));
