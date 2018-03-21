@@ -57,13 +57,17 @@ async function sendNotice(bot, notices) {
       console.error(`[${new Date().toLocaleString()}] ${ok} ${error}`);
       continue;
     }
-    await bot.sendMessage(GROUPID, `[${title}](${url})`, {
-      parse_mode: 'Markdown',
-      reply_markup: {inline_keyboard: [[{
-        text: '阅读原文',
-        url: `http://4m3.tongji.edu.cn/eams/noticeDocument!info.action?ifMain=1&notice.id=${id}`
-      }]]}
-    });
+    try {
+      await bot.sendMessage(GROUPID, `[${title}](${url})`, {
+        parse_mode: 'Markdown',
+        reply_markup: {inline_keyboard: [[{
+          text: '阅读原文',
+          url: `http://4m3.tongji.edu.cn/eams/noticeDocument!info.action?ifMain=1&notice.id=${id}`
+        }]]}
+      });
+    } catch (e) {
+      console.error(`${new Date().toLocaleString()}] ${e.message}`);
+    }
   }
 }
 
@@ -98,7 +102,12 @@ function setVisitedNoticesIds(oldNoticeIds) {
  */
 async function scan(bot) {
   const visitedNoticeIds = getVisitedNoticesIds();
-  const list = await fetcher.getNotificationList();
+  let list = [];
+  try {
+    list = await fetcher.getNotificationList();
+  } catch (e) {
+    console.error(`[${new Date().toLocaleString()}] ${e.message}`);
+  }
   let newNotices = list.filter(({id}) => !visitedNoticeIds.includes(id));
 
   if (newNotices.length > 0) {
@@ -111,6 +120,7 @@ async function scan(bot) {
     // 倒序发送通知
     sendNotice(bot, newNotices.reverse());
   }
+  console.info(`[${new Date().toLocaleString()}] System OK!`);
 
   setTimeout(() => scan(bot), PERIOD);
 }
