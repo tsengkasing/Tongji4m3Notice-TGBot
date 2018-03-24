@@ -7,6 +7,7 @@ const TelegraphAPI = require('./lib/telegraph');
 const {
   AUTHOR,
   GROUPID,
+  ALERTID,
   JSESSIONID,
   SERVERNAME,
   PERIOD,
@@ -24,6 +25,24 @@ const Raven = require('raven');
 Raven.config(RAVENDSN).install();
 
 /**
+ * 日志
+ * @param {string} content
+ * @param {boolean} isError
+ * @param {any} option
+ */
+function info(content, isError, option) {
+  const _content = `[${new Date().toLocaleString({}, {
+    timeZone: 'Asia/Shanghai'
+  })}] ${content}`;
+  if (isError) {
+    console.error(_content);
+    if (option && option.bot) {
+      option.bot.sendMessage(ALERTID, content);
+    }
+  } else console.log(_content);
+}
+
+/**
  * 主函数
  */
 (function main() {
@@ -37,7 +56,7 @@ Raven.config(RAVENDSN).install();
   // messages.
   bot.on('message', (msg) => {
     const chatId = msg.chat.id;
-    console.log(`${chatId} send message.`);
+    info(`${chatId} send message.`);
 
     // send a message to the chat acknowledging receipt of their message
     bot.sendMessage(chatId, 'Received your message');
@@ -55,11 +74,11 @@ async function sendNotice(bot, notices) {
   // 按顺序发送，不并发
   for (let notice of notices) {
     const {title, publishedTime, content, id} = notice;
-    console.info(`[${new Date().toLocaleString()}] ${title} ${publishedTime}`);
+    info(` ${title} ${publishedTime}`);
     const {ok, url, error} = await telegraphAPI.createPage(title, AUTHOR, content);
     if (!ok) {
-      console.info(content);
-      console.error(`[${new Date().toLocaleString()}] ${ok} ${error}`);
+      info(content, true);
+      info(error, true);
       continue;
     }
     try {
@@ -72,7 +91,7 @@ async function sendNotice(bot, notices) {
       });
     } catch (e) {
       Raven.captureException(e);
-      console.error(`${new Date().toLocaleString()}] ${e.message}`);
+      info(e.message, true);
     }
   }
 }
@@ -111,9 +130,10 @@ async function scan(bot) {
   let list = [];
   try {
     list = await fetcher.getNotificationList();
+    info('System OK!');
   } catch (e) {
     Raven.captureException(e);
-    console.error(`[${new Date().toLocaleString()}] ${e.message}`);
+    info(e.message, true);
   }
   let newNotices = list.filter(({id}) => !visitedNoticeIds.includes(id));
 
@@ -127,7 +147,6 @@ async function scan(bot) {
     // 倒序发送通知
     sendNotice(bot, newNotices.reverse());
   }
-  console.info(`[${new Date().toLocaleString()}] System OK!`);
 
   setTimeout(() => scan(bot), PERIOD);
 }

@@ -3,6 +3,7 @@
   "JSESSIONID": "",
   "SERVERNAME": "",
   "PERIOD": 300000,
+  "ALERTID": "",
   "GROUPID": "@tongji4m3",
   "TELEGRAM": {
     "TOKEN": ""
