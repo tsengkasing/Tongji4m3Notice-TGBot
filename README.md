@@ -16,6 +16,9 @@
 
 > 于是目前使用着某一次登录后的 cookie。
 
+> 学校网站偶尔抽风，无法连接，时间一长，cookie 就失效了 orz    
+> 暂无更好的解决措施？？？    
+
 ### 页面的解析及通知信息提取
 
 [lib/tongji-4m3-notification-fetcher.js](https://github.com/tsengkasing/Tongji4m3Notice-TGBot/blob/master/lib/tongji-4m3-notification-fetcher.js)
