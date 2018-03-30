@@ -8,15 +8,14 @@ const {
   AUTHOR,
   GROUPID,
   ALERTID,
-  JSESSIONID,
-  SERVERNAME,
+  LOGINTOKEN,
   PERIOD,
   PROXY,
   RAVENDSN,
   TELEGRAPH: { ACCESS_TOKEN },
   TELEGRAM: { TOKEN }
 } = require('./config.json');
-const fetcher = new NoticeFetcher({JSESSIONID, SERVERNAME});
+const fetcher = new NoticeFetcher(LOGINTOKEN);
 const visitedNoticeIdsFile = path.join(__dirname, 'visitedNoticeIds.json');
 const telegraphAPI = new TelegraphAPI(ACCESS_TOKEN);
 
@@ -62,7 +61,7 @@ function info(content, isError, option) {
     bot.sendMessage(chatId, 'Received your message');
   });
 
-  scan(bot);
+  fetcher.login().then(() => scan(bot));
 }());
 
 /**
@@ -133,7 +132,7 @@ async function scan(bot) {
     info('System OK!');
   } catch (e) {
     Raven.captureException(e);
-    info(e.message, true);
+    info(e.message, true, { bot });
   }
   let newNotices = list.filter(({id}) => !visitedNoticeIds.includes(id));
 

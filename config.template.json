@@ -1,7 +1,9 @@
 {
   "AUTHOR": "Tongji 4m3 Notice",
-  "JSESSIONID": "",
-  "SERVERNAME": "",
+  "LOGINTOKEN": {
+    "token1": "",
+    "token2": ""
+  },
   "PERIOD": 300000,
   "ALERTID": "",
   "GROUPID": "@tongji4m3",
