@@ -35,9 +35,7 @@ function info(content, isError, option) {
   })}] ${content}`;
   if (isError) {
     console.error(_content);
-    if (option && option.bot) {
-      option.bot.sendMessage(ALERTID, content);
-    }
+    if (option && option.bot) option.bot.sendMessage(ALERTID, content);
   } else console.log(_content);
 }
 
@@ -61,7 +59,7 @@ function info(content, isError, option) {
     bot.sendMessage(chatId, 'Received your message');
   });
 
-  fetcher.login().then(() => scan(bot));
+  scan(bot);
 }());
 
 /**
@@ -122,12 +120,13 @@ function setVisitedNoticesIds(oldNoticeIds) {
 
 /**
  * 扫描
- * @param {TelagramBot} bot
+ * @param {TelegramBot} bot
  */
 async function scan(bot) {
   const visitedNoticeIds = getVisitedNoticesIds();
   let list = [];
   try {
+    await fetcher.login();
     list = await fetcher.getNotificationList();
     info('System OK!');
   } catch (e) {
@@ -135,6 +134,7 @@ async function scan(bot) {
     info(e.message, true, { bot });
   }
   let newNotices = list.filter(({id}) => !visitedNoticeIds.includes(id));
+  info(newNotices);
 
   if (newNotices.length > 0) {
     setVisitedNoticesIds(list.map(({id}) => id.toString()));
