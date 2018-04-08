@@ -134,7 +134,7 @@ async function scan(bot) {
     info(e.message, true, { bot });
   }
   let newNotices = list.filter(({id}) => !visitedNoticeIds.includes(id));
-  info(newNotices);
+  info(JSON.stringify(newNotices, null, 2));
 
   if (newNotices.length > 0) {
     setVisitedNoticesIds(list.map(({id}) => id.toString()));
