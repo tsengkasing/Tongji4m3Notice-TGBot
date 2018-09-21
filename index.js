@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const TelegramBot = require('node-telegram-bot-api');
+const https = require('https');
 const NoticeFetcher = require('./lib/tongji-4m3-notification-fetcher');
 const TelegraphAPI = require('./lib/telegraph');
 
@@ -10,7 +10,6 @@ const {
   ALERTID,
   LOGINTOKEN,
   PERIOD,
-  PROXY,
   RAVENDSN,
   TELEGRAPH: { ACCESS_TOKEN },
   TELEGRAM: { TOKEN }
@@ -27,15 +26,15 @@ Raven.config(RAVENDSN).install();
  * 日志
  * @param {string} content
  * @param {boolean} isError
- * @param {any} option
+ * @param {boolean} alert
  */
-function info(content, isError, option) {
+function info(content, isError, alert) {
   const _content = `[${new Date().toLocaleString({}, {
     timeZone: 'Asia/Shanghai'
   })}] ${content}`;
   if (isError) {
     console.error(_content);
-    if (option && option.bot) option.bot.sendMessage(ALERTID, content);
+    if (alert) sendMessage(ALERTID, content);
   } else console.log(_content);
 }
 
@@ -43,31 +42,14 @@ function info(content, isError, option) {
  * 主函数
  */
 (function main() {
-  // Create a bot that uses 'polling' to fetch new updates
-  const bot = new TelegramBot(TOKEN, {
-    polling: true,
-    request: PROXY ? { proxy: PROXY } : {},
-  });
-
-  // Listen for any kind of message. There are different kinds of
-  // messages.
-  bot.on('message', (msg) => {
-    const chatId = msg.chat.id;
-    info(`${chatId} send message.`);
-
-    // send a message to the chat acknowledging receipt of their message
-    bot.sendMessage(chatId, 'Received your message');
-  });
-
-  scan(bot);
+  scan();
 }());
 
 /**
  * 发送通知
- * @param {TelagramBot} bot
  * @param {any} notices
  */
-async function sendNotice(bot, notices) {
+async function sendNotice(notices) {
   // 按顺序发送，不并发
   for (let notice of notices) {
     const {title, publishedTime, content, id} = notice;
@@ -79,7 +61,7 @@ async function sendNotice(bot, notices) {
       continue;
     }
     try {
-      await bot.sendMessage(GROUPID, `[${title}](${url})`, {
+      await sendMessage(GROUPID, `[${title}](${url})`, {
         parse_mode: 'Markdown',
         reply_markup: {inline_keyboard: [[{
           text: '阅读原文',
@@ -120,9 +102,8 @@ function setVisitedNoticesIds(oldNoticeIds) {
 
 /**
  * 扫描
- * @param {TelegramBot} bot
  */
-async function scan(bot) {
+async function scan() {
   const visitedNoticeIds = getVisitedNoticesIds();
   let list = [];
   try {
@@ -131,7 +112,7 @@ async function scan(bot) {
     info('System OK!');
   } catch (e) {
     Raven.captureException(e);
-    info(e.message, true, { bot });
+    info(e.message, true, true);
   }
   let newNotices = list.filter(({id}) => !visitedNoticeIds.includes(id));
   info(JSON.stringify(newNotices, null, 2));
@@ -144,8 +125,44 @@ async function scan(bot) {
       ))
     );
     // 倒序发送通知
-    sendNotice(bot, newNotices.reverse());
+    sendNotice(newNotices.reverse());
   }
 
-  setTimeout(() => scan(bot), PERIOD);
+  setTimeout(() => scan(), PERIOD);
+}
+
+/**
+ * 发送消息到 telegram API
+ * @param {string} chatId 消息目标
+ * @param {string} msg 信息文本
+ * @param {any} option 附加选项
+ */
+function sendMessage (chatId, msg = '', option = {}) {
+  return new Promise(function (resolve, reject) {
+    if (!chatId) reject(new Error('Empty chatID!'));
+    const request = https.request({
+      hostname: 'api.telegram.org',
+      method: 'POST',
+      path: `/bot${TOKEN}/sendMessage`,
+      headers: { 'Content-Type': 'application/json' }
+    }, response => {
+      const chunks = [];
+      response.on('data', chunk => chunks.push(chunk));
+      response.on('end', () => {
+        let data = Buffer.concat(chunks).toString();
+        try {
+          data = JSON.parse(data);
+        } catch (e) {
+          return reject(new Error('Parse Telegram Bot API resposne JSON Error'));
+        }
+        const { ok, description } = data;
+        if (!ok) { return reject(new Error(`[Send Message Failed] ${description}`)); }
+        resolve();
+      });
+    });
+    request.write(
+      JSON.stringify(Object.assign({ chat_id: chatId, text: msg }, option))
+    );
+    request.end();
+  });
 }
