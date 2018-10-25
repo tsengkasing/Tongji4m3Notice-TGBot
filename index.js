@@ -1,22 +1,15 @@
 const fs = require('fs');
 const path = require('path');
-const https = require('https');
+const http = require('http');
 const NoticeFetcher = require('./lib/tongji-4m3-notification-fetcher');
-const TelegraphAPI = require('./lib/telegraph');
 
 const {
-  AUTHOR,
-  GROUPID,
-  ALERTID,
   LOGINTOKEN,
   PERIOD,
   RAVENDSN,
-  TELEGRAPH: { ACCESS_TOKEN },
-  TELEGRAM: { TOKEN }
 } = require('./config.json');
 const fetcher = new NoticeFetcher(LOGINTOKEN);
 const visitedNoticeIdsFile = path.join(__dirname, 'visitedNoticeIds.json');
-const telegraphAPI = new TelegraphAPI(ACCESS_TOKEN);
 
 // 监控使用
 const Raven = require('raven');
@@ -34,7 +27,7 @@ function info(content, isError, alert) {
   })}] ${content}`;
   if (isError) {
     console.error(_content);
-    if (alert) sendMessage(ALERTID, content);
+    // if (alert) sendMessage(ALERTID, content);
   } else console.log(_content);
 }
 
@@ -44,36 +37,6 @@ function info(content, isError, alert) {
 (function main() {
   scan();
 }());
-
-/**
- * 发送通知
- * @param {any} notices
- */
-async function sendNotice(notices) {
-  // 按顺序发送，不并发
-  for (let notice of notices) {
-    const {title, publishedTime, content, id} = notice;
-    info(` ${title} ${publishedTime}`);
-    const {ok, url, error} = await telegraphAPI.createPage(title, AUTHOR, content);
-    if (!ok) {
-      info(content, true);
-      info(error, true);
-      continue;
-    }
-    try {
-      await sendMessage(GROUPID, `[${title}](${url})`, {
-        parse_mode: 'Markdown',
-        reply_markup: {inline_keyboard: [[{
-          text: '阅读原文',
-          url: `http://4m3.tongji.edu.cn/eams/noticeDocument!info.action?ifMain=1&notice.id=${id}`
-        }]]}
-      });
-    } catch (e) {
-      Raven.captureException(e);
-      info(e.message, true);
-    }
-  }
-}
 
 /**
  * 获取已读通知序号
@@ -131,38 +94,19 @@ async function scan() {
   setTimeout(() => scan(), PERIOD);
 }
 
-/**
- * 发送消息到 telegram API
- * @param {string} chatId 消息目标
- * @param {string} msg 信息文本
- * @param {any} option 附加选项
- */
-function sendMessage (chatId, msg = '', option = {}) {
-  return new Promise(function (resolve, reject) {
-    if (!chatId) reject(new Error('Empty chatID!'));
-    const request = https.request({
-      hostname: 'api.telegram.org',
-      method: 'POST',
-      path: `/bot${TOKEN}/sendMessage`,
-      headers: { 'Content-Type': 'application/json' }
-    }, response => {
-      const chunks = [];
-      response.on('data', chunk => chunks.push(chunk));
-      response.on('end', () => {
-        let data = Buffer.concat(chunks).toString();
-        try {
-          data = JSON.parse(data);
-        } catch (e) {
-          return reject(new Error('Parse Telegram Bot API resposne JSON Error'));
-        }
-        const { ok, description } = data;
-        if (!ok) { return reject(new Error(`[Send Message Failed] ${description}`)); }
-        resolve();
-      });
+function sendNotice(notices) {
+  const req = http.request({
+    hostname: 'g.everstar.xyz',
+    path: '/4m3',
+    method: 'POST'
+  }, res => {
+    const chunks = [];
+    res.on('data', chunk => chunks.push(chunk));
+    res.on('end', () => {
+      const body = Buffer.concat(chunks).toString();
+      info(body);
     });
-    request.write(
-      JSON.stringify(Object.assign({ chat_id: chatId, text: msg }, option))
-    );
-    request.end();
   });
+  req.write(JSON.stringify(notices));
+  req.end();
 }
