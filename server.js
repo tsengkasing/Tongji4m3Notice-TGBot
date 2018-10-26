@@ -45,7 +45,7 @@ function server() {
       response.statusCode = 404;
       response.end();
     }
-  }).listen(9321, () => info('Server start!'));
+  }).listen(4321, () => info('Server start!'));
 }
 
 /**
