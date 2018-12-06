@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const https = require('https');
+const request = require('request');
 const NoticeFetcher = require('./lib/tongji-4m3-notification-fetcher');
 const TelegraphAPI = require('./lib/telegraph');
 
@@ -10,17 +10,24 @@ const {
   ALERTID,
   LOGINTOKEN,
   PERIOD,
+  PROXY,
   RAVENDSN,
   TELEGRAPH: { ACCESS_TOKEN },
   TELEGRAM: { TOKEN }
 } = require('./config.json');
 const fetcher = new NoticeFetcher(LOGINTOKEN);
 const visitedNoticeIdsFile = path.join(__dirname, 'visitedNoticeIds.json');
-const telegraphAPI = new TelegraphAPI(ACCESS_TOKEN);
+const telegraphAPI = new TelegraphAPI(ACCESS_TOKEN, PROXY);
 
-// 监控使用
+const fetch = request.defaults({'proxy': PROXY});
+
 const Raven = require('raven');
-Raven.config(RAVENDSN).install();
+let usingRaven = false;
+// 监控使用
+if (RAVENDSN) {
+  Raven.config(RAVENDSN).install();
+  usingRaven = true;
+}
 
 /**
  * 日志
@@ -69,7 +76,7 @@ async function sendNotice(notices) {
         }]]}
       });
     } catch (e) {
-      Raven.captureException(e);
+      usingRaven && Raven.captureException(e);
       info(e.message, true);
     }
   }
@@ -111,7 +118,7 @@ async function scan() {
     list = await fetcher.getNotificationList();
     info('System OK!');
   } catch (e) {
-    Raven.captureException(e);
+    usingRaven && Raven.captureException(e);
     info(e.message, true, true);
   }
   let newNotices = list.filter(({id}) => !visitedNoticeIds.includes(id));
@@ -140,29 +147,18 @@ async function scan() {
 function sendMessage (chatId, msg = '', option = {}) {
   return new Promise(function (resolve, reject) {
     if (!chatId) reject(new Error('Empty chatID!'));
-    const request = https.request({
-      hostname: 'api.telegram.org',
-      method: 'POST',
-      path: `/bot${TOKEN}/sendMessage`,
-      headers: { 'Content-Type': 'application/json' }
-    }, response => {
-      const chunks = [];
-      response.on('data', chunk => chunks.push(chunk));
-      response.on('end', () => {
-        let data = Buffer.concat(chunks).toString();
-        try {
-          data = JSON.parse(data);
-        } catch (e) {
-          return reject(new Error('Parse Telegram Bot API resposne JSON Error'));
-        }
-        const { ok, description } = data;
-        if (!ok) { return reject(new Error(`[Send Message Failed] ${description}`)); }
-        resolve();
-      });
+    fetch.post({
+      url: `https://api.telegram.org/bot${TOKEN}/sendMessage`,
+      headers: { 'Content-Type': 'application/json' },
+      body: Object.assign({ chat_id: chatId, text: msg }, option),
+      json: true
+    }, function (err, httpResponse, body) {
+      if (err) {
+        return reject(new Error('Telegram Bot API resposne Error'));
+      }
+      const { ok, description } = body;
+      if (!ok) { return reject(new Error(`[Send Message Failed] ${description}`)); }
+      resolve();
     });
-    request.write(
-      JSON.stringify(Object.assign({ chat_id: chatId, text: msg }, option))
-    );
-    request.end();
   });
 }
