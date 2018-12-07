@@ -1,11 +1,6 @@
-FROM ubuntu:18.04
-RUN apt-get update \
-	&& apt-get upgrade -y \
-	&& apt-get install -y nodejs \
-	&& rm -rf /var/lib/apt/lists/* 
+FROM node:10
 
-COPY lib/ /opt/4m3bot/lib/
-COPY index.js /opt/4m3bot/index.js
-COPY run.sh /opt/4m3bot/run.sh
+COPY . /opt/4m3bot/
+RUN cd /opt/4m3bot/ && npm install
 
-ENTRYPOINT ["/opt/4m3bot/run.sh"]
+CMD ["/opt/4m3bot/run.sh"]
