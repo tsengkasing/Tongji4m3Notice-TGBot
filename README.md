@@ -1,7 +1,8 @@
 # Tongji4m3Notice-TGBot
 
-![](https://img.shields.io/badge/node--telegram--bot--api-0.3-brightgreen.svg)
 ![](https://img.shields.io/badge/cheerio-1.0-brightgreen.svg)
+![](https://img.shields.io/badge/request-2.85.0-brightgreen.svg)
+![](https://img.shields.io/badge/request--promise--native-1.0.5-brightgreen.svg)
 
 将 4m3.tongji.edu.cn 的通知转发到 Telegram 的 [@tongji4m3](https://t.me/tongji4m3) 频道。
 
@@ -11,17 +12,17 @@
 
 ### 权限问题以及登录状态的保持
 
-访问同济 4m3 网站需要登录，然而经过测试发现，获取需要的通知信息只需要登录后的 ``JSESSIONID`` 和 ``SERVERNAME`` 两个 cookie 字段。 
-并且只要一直持续地访问，cookie 就会一直有效。 
-
-> 于是目前使用着某一次登录后的 cookie。
+<del>访问同济 4m3 网站需要登录，然而经过测试发现，获取需要的通知信息只需要登录后的 ``JSESSIONID`` 和 ``SERVERNAME`` 两个 cookie 字段。 
+并且只要一直持续地访问，cookie 就会一直有效。 </del>
 
 > 学校网站偶尔抽风，无法连接，时间一长，cookie 就失效了 orz    
-> 暂无更好的解决措施？？？    
+
+PS: 现已改成每次先登录再抓取信息。
 
 ### 页面的解析及通知信息提取
 
 [lib/tongji-4m3-notification-fetcher.js](https://github.com/tsengkasing/Tongji4m3Notice-TGBot/blob/master/lib/tongji-4m3-notification-fetcher.js)
+
 4m3 通知的页面 DOM 结构还是比较规范的，此处使用了 [cheerio](https://github.com/cheeriojs/cheerio)(服务器端用的jQuery) 来方便地解析HTML。
 
 ### 通知内容的预览
@@ -32,9 +33,74 @@
 
 ### 更新频率
 
-目前暂定 5 分钟更新一次。
+目前 10 分钟更新一次。
 
 ## Screenshots
 
 ![screenshots](https://user-images.githubusercontent.com/10103993/37531422-16cab278-2977-11e8-9be1-09c40952dc5e.png)
 
+## Get Started
+
+```bash
+$ git clone https://github.com/tsengkasing/Tongji4m3Notice-TGBot.git
+$ cd Tongji4m3Notice-TGBot
+$ npm install
+```
+
+Then
+
+```bash
+$ node index.js
+```
+or
+
+```bash
+$ pm2 start index.js --name Tongji-4m3
+```
+
+## 代码结构
+
+### Tree Structure
+
+```
++-- index.js
+| +-- lib
+| | +-- telegraph.js
+| | `-- tongji-4m3-notification-fetcher.js
+| +-- visitedNoticeIds.json
+` --- config.json
+```
+
+### Introduction
+
+- index.js
+    程序主入口
+- lib/telegraph.js
+    负责转发到 Telegraph 生成预览网页。
+- lib/tongji-4m3-notification-fetch.js
+    负责从 4m3.tongji.edu.cn 获取通知。
+- visitedNoticeIds.json
+    负责存储已经转发过的通知 id, 文件不存在时会自动创建。
+- config.json
+    配置文件，包括 telegram 的 token, telegraph 的 token, 4m3 的账号密码 以及 PROXY 的 URL 等等。
+
+```javascript
+{
+  "AUTHOR": "Tongji 4m3 Notice",
+  "LOGINTOKEN": {
+    "token1": "", // 4m3 用户名
+    "token2": ""  // 4m3 密码
+  },
+  "PERIOD": 600000, // 周期 10 分钟
+  "ALERTID": "",    // 报错通知 id
+  "GROUPID": "@tongji4m3", // 频道 id
+  "TELEGRAM": {
+    "TOKEN": ""
+  },
+  "TELEGRAPH": {
+    "ACCESS_TOKEN":""
+  },
+  "RAVENDSN": "",    // 报错上报 Sentry 的 id
+  "PROXY": "http://localhost:1080"  // 如果需要走代理，代理的 URL, 如 http://localhost:1080
+}
+```
