@@ -41,6 +41,8 @@ PS: 现已改成每次先登录再抓取信息。
 
 ## Get Started
 
+### Run on Linux
+
 ```bash
 $ git clone https://github.com/tsengkasing/Tongji4m3Notice-TGBot.git
 $ cd Tongji4m3Notice-TGBot
@@ -56,6 +58,17 @@ or
 
 ```bash
 $ pm2 start index.js --name Tongji-4m3
+```
+
+### Run on Docker
+
+由 [@DarkKowalski](https://github.com/DarkKowalski) 维护 [Docker 镜像](https://hub.docker.com/r/darkkowalski/tongji4m3notice-tgbot)
+
+部署时需挂载 `config.json` 和 `visitedNoticeIds.json`
+
+```bash
+$ docker pull darkkowalski/tongji4m3notice-tgbot
+$ docker run -v ~/4m3bot/config.json:/opt/4m3bot/config.json -v ~/4m3bot/visitedNoticeIds.json:/opt/4m3bot/visitedNoticeIds.json -it darkkowalski/tongji4m3notice-tgbot:latest
 ```
 
 ## 代码结构
