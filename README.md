@@ -12,10 +12,10 @@
 
 ### 权限问题以及登录状态的保持
 
-<del>访问同济 4m3 网站需要登录，然而经过测试发现，获取需要的通知信息只需要登录后的 ``JSESSIONID`` 和 ``SERVERNAME`` 两个 cookie 字段。 
+<del>访问同济 4m3 网站需要登录，然而经过测试发现，获取需要的通知信息只需要登录后的 ``JSESSIONID`` 和 ``SERVERNAME`` 两个 cookie 字段。
 并且只要一直持续地访问，cookie 就会一直有效。 </del>
 
-> 学校网站偶尔抽风，无法连接，时间一长，cookie 就失效了 orz    
+> 学校网站偶尔抽风，无法连接，时间一长，cookie 就失效了 orz
 
 PS: 现已改成每次先登录再抓取信息。
 
@@ -27,8 +27,8 @@ PS: 现已改成每次先登录再抓取信息。
 
 ### 通知内容的预览
 
-由于众所周知的原因，中国大陆无法访问 Telegram，同理 Telegram 服务器也无法获取国内网页(此处还有登录权限问题)。 
-因此在 Telegram 内分享一个网页链接无法生成预览(也不应该把全部通知文本塞到对话框里)，而且用户在频道看到通知后还需要再登录才能看到具体内容。 
+由于众所周知的原因，中国大陆无法访问 Telegram，同理 Telegram 服务器也无法获取国内网页(此处还有登录权限问题)。
+因此在 Telegram 内分享一个网页链接无法生成预览(也不应该把全部通知文本塞到对话框里)，而且用户在频道看到通知后还需要再登录才能看到具体内容。
 为了解决此问题，将通知的页面解析并提取内容，然后转发到 Telegraph，再将生成的 Telegraph 的链接转发到 Telegram 中。
 
 ### 更新频率
@@ -67,21 +67,21 @@ $ pm2 start index.js --name Tongji-4m3
 部署时需挂载 `config.json` 和 `visitedNoticeIds.json`
 
 ```bash
-$ docker pull darkkowalski/tongji4m3notice-tgbot
-$ docker run -v ~/4m3bot/config.json:/opt/4m3bot/config.json -v ~/4m3bot/visitedNoticeIds.json:/opt/4m3bot/visitedNoticeIds.json -it darkkowalski/tongji4m3notice-tgbot:latest
+$ docker run -v ~/4m3bot/config.json:/usr/src/app/config.json -v ~/4m3bot/visitedNoticeIds.json:/usr/src/app/visitedNoticeIds.json -it darkkowalski/tongji4m3notice-tgbot:latest
 ```
 
 ## 代码结构
 
-### Tree Structure
+### Project Structure
 
 ```
-+-- index.js
-| +-- lib
-| | +-- telegraph.js
-| | `-- tongji-4m3-notification-fetcher.js
-| +-- visitedNoticeIds.json
-` --- config.json
+.
+├── index.js
+├── lib
+│   ├── telegraph.js
+│   └── tongji-4m3-notification-fetcher.js
+├── config.json
+└── visitedNoticeIds.json
 ```
 
 ### Introduction
